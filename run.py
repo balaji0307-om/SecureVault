@@ -39,21 +39,28 @@ def seed_initial_users():
         db.session.commit()
 
 if __name__ == "__main__":
+    import sys
+    # Reconfigure stdout/stderr to utf-8 if supported to prevent Windows cp1252 crashes
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
     seed_initial_users()
     
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_ENV", "development") == "development"
 
     print("=" * 72)
-    print(" 🛡️  SECUREVAULT — ZERO-TRUST ENCRYPTED FILE SHARING PLATFORM")
+    print(" [SECUREVAULT] ZERO-TRUST ENCRYPTED FILE SHARING PLATFORM")
     print("=" * 72)
-    print(" • Encryption:      AES-256-GCM Envelope Encryption (per-file DEK)")
-    print(" • Password Hashing: Argon2id (Memory-hard parameters)")
-    print(" • File Integrity:  Pre-encryption SHA-256 Re-Verification")
-    print(" • Access Control:  RBAC (Admin/User) + Fine-Grained File Permissions")
-    print(" • Sharing Engine:  Signed, Expiring, One-Time Burn-After-Reading URLs")
-    print(" • Threat Engine:   Rate-limiting, Brute-Force Lockout, Risk Scoring")
-    print(f" • Server Online:   http://127.0.0.1:{port}")
+    print(" * Encryption:       AES-256-GCM Envelope Encryption (per-file DEK)")
+    print(" * Password Hashing: Argon2id (Memory-hard parameters)")
+    print(" * File Integrity:   Pre-encryption SHA-256 Re-Verification")
+    print(" * Access Control:   RBAC (Admin/User) + Fine-Grained File Permissions")
+    print(" * Sharing Engine:   Signed, Expiring, One-Time Burn-After-Reading URLs")
+    print(" * Threat Engine:    Rate-limiting, Brute-Force Lockout, Risk Scoring")
+    print(f" * Server Online:    http://127.0.0.1:{port}")
     print("=" * 72)
 
     app.run(host="0.0.0.0", port=port, debug=debug)
