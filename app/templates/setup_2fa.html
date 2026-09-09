@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Setup 2FA — SecureVault{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 480px;">
+    <div class="card">
+        <div class="auth-header">
+            <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">📲</span>
+            <h1>Enable Two-Factor Authentication</h1>
+            <p>Scan this QR code with Google Authenticator, Authy, or 1Password</p>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="background: #ffffff; display: inline-block; padding: 1rem; border-radius: 8px;">
+                <img src="data:image/png;base64,{{ qr_b64 }}" alt="2FA QR Code" style="width: 200px; height: 200px; display: block;">
+            </div>
+            <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                Manual Entry Secret Key:<br>
+                <code class="code-snippet" style="font-size: 0.9rem; letter-spacing: 0.1em;">{{ secret }}</code>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.setup_2fa') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label class="form-label" for="token">Enter 6-Digit Authenticator Code</label>
+                <input type="text" class="form-control" id="token" name="token" placeholder="123456" maxlength="6" pattern="[0-9]{6}" required autofocus style="text-align: center; font-size: 1.5rem; letter-spacing: 0.25em; font-family: var(--font-mono);">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">
+                Verify & Activate 2FA
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

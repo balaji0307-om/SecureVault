@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}User Management — Admin Center{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('admin.dashboard') }}" style="color: var(--cyber-cyan); text-decoration: none; font-size: 0.85rem;">
+        ← Back to Security Center
+    </a>
+    <h1 style="font-size: 1.65rem; font-weight: 700; margin-top: 0.5rem;">
+        User Identity & Role-Based Access Control (RBAC)
+    </h1>
+    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+        Manage accounts, clear brute-force lockouts, and administer administrative privileges
+    </p>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>User / Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>2FA</th>
+                    <th>Failed Attempts</th>
+                    <th>Lockout State</th>
+                    <th>Created</th>
+                    <th style="text-align: right;">Administrative Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary);">{{ u.username }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ u.email }}</div>
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.change_user_role', user_id=u.id) }}" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <select name="role" class="form-control" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; width: auto;" onchange="this.form.submit()">
+                                <option value="USER" {% if u.role == 'USER' %}selected{% endif %}>USER</option>
+                                <option value="ADMIN" {% if u.role == 'ADMIN' %}selected{% endif %}>ADMIN</option>
+                            </select>
+                        </form>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="badge badge-clean">ACTIVE</span>
+                        {% else %}
+                            <span class="badge badge-infected">DISABLED</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_2fa_enabled %}
+                            <span class="badge badge-verified">ENABLED</span>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">None</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-family: var(--font-mono); font-size: 0.85rem;">
+                        {{ u.failed_login_attempts }} / 5
+                    </td>
+                    <td>
+                        {% if u.is_locked() %}
+                            <span class="badge badge-infected">LOCKED</span>
+                            <div style="font-size: 0.7rem; color: #f87171; margin-top: 0.2rem;">
+                                until {{ u.locked_until.strftime('%H:%M:%S') }}
+                            </div>
+                        {% else %}
+                            <span style="color: #34d399; font-size: 0.8rem;">Unlocked</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">
+                        {{ u.created_at.strftime('%Y-%m-%d') }}
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: inline-flex; gap: 0.4rem;">
+                            {% if u.is_locked() %}
+                            <form method="POST" action="{{ url_for('admin.unlock_user', user_id=u.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    🔓 Unlock
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            {% if u.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline btn-sm">
+                                    {% if u.is_active %}Disable{% else %}Enable{% endif %}
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

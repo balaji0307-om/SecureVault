@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Encrypted Vault Files — SecureVault{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.65rem; font-weight: 700;">Encrypted Vault Explorer</h1>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+            AES-256-GCM encrypted disk blobs stored under UUID filenames
+        </p>
+    </div>
+    <a href="{{ url_for('files.dashboard') }}" class="btn btn-primary">
+        + Upload New File
+    </a>
+</div>
+
+<!-- Search & Classification Filter Bar -->
+<div class="card" style="padding: 1rem;">
+    <form method="GET" action="{{ url_for('files.list_files') }}" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 240px;">
+            <input type="text" name="q" class="form-control" placeholder="Search filenames..." value="{{ search_query }}">
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="{{ url_for('files.list_files') }}" class="btn btn-sm {% if not selected_classification %}btn-primary{% else %}btn-outline{% endif %}">
+                All Tiers
+            </a>
+            {% for c in classifications %}
+            <a href="{{ url_for('files.list_files', classification=c, q=search_query) }}" class="btn btn-sm {% if selected_classification == c %}btn-primary{% else %}btn-outline{% endif %}">
+                {{ c }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        {% if selected_classification or search_query %}
+        <a href="{{ url_for('files.list_files') }}" class="btn btn-outline btn-sm">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Files Table -->
+<div class="card">
+    {% if files %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Original Filename</th>
+                    <th>Classification</th>
+                    <th>Size</th>
+                    <th>SHA-256 Hash</th>
+                    <th>Owner</th>
+                    <th>Encryption</th>
+                    <th>Uploaded (UTC)</th>
+                    <th style="text-align: right;">Security Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in files %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary);">
+                            📄 {{ f.original_name }}
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);">
+                            Blob: {{ f.storage_name }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if f.classification == 'PUBLIC' %}
+                            <span class="badge badge-public">PUBLIC</span>
+                        {% elif f.classification == 'INTERNAL' %}
+                            <span class="badge badge-internal">INTERNAL</span>
+                        {% elif f.classification == 'CONFIDENTIAL' %}
+                            <span class="badge badge-confidential">CONFIDENTIAL</span>
+                        {% else %}
+                            <span class="badge badge-highly-confidential">HIGHLY_CONFIDENTIAL</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if f.file_size > 1048576 %}
+                            {{ "%.1f"|format(f.file_size / 1048576) }} MB
+                        {% else %}
+                            {{ "%.1f"|format(f.file_size / 1024) }} KB
+                        {% endif %}
+                    </td>
+                    <td>
+                        <code class="code-snippet" title="{{ f.sha256_hash }}">
+                            {{ f.sha256_hash[:12] }}...
+                        </code>
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                        {{ f.owner.username }}
+                        {% if f.owner_id == user.id %}
+                            <span style="font-size: 0.7rem; color: var(--cyber-cyan);">(You)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-clean">AES-256-GCM</span>
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">
+                        {{ f.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: inline-flex; gap: 0.4rem;">
+                            <a href="{{ url_for('files.download_file', file_id=f.id) }}" class="btn btn-outline btn-sm" title="Verify SHA-256 & Decrypt">
+                                ⬇️ Download
+                            </a>
+                            <a href="{{ url_for('sharing.manage_sharing', file_id=f.id) }}" class="btn btn-secondary btn-sm" title="Share & Permissions">
+                                🔗 Share
+                            </a>
+                            {% if user.is_admin or f.owner_id == user.id %}
+                            <form method="POST" action="{{ url_for('files.delete_file', file_id=f.id) }}" onsubmit="return confirm('Permanently shred this file and revoke all share links?');" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    🗑️ Shred
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No files matched your criteria.</p>
+        <p style="font-size: 0.85rem;">Try adjusting your classification filter or search terms.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

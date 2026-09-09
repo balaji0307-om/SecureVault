@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Verify 2FA — SecureVault{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 440px;">
+    <div class="card">
+        <div class="auth-header">
+            <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">🔑</span>
+            <h1>Two-Factor Challenge</h1>
+            <p>Enter the 6-digit security code from your authenticator app</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.verify_2fa') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label class="form-label" for="token" style="text-align: center;">Security Code</label>
+                <input type="text" class="form-control" id="token" name="token" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autofocus autocomplete="one-time-code" style="text-align: center; font-size: 1.75rem; letter-spacing: 0.3em; font-family: var(--font-mono);">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">
+                Verify Identity
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem;">
+            <a href="{{ url_for('auth.login') }}" style="color: var(--text-muted); text-decoration: none;">Return to Sign In</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

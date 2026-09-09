@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Shared File Access — SecureVault{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 520px;">
+    <div class="card">
+        {% if error %}
+        <div style="text-align: center; padding: 1.5rem 0;">
+            <span style="font-size: 3rem; display: block; margin-bottom: 0.75rem;">⛔</span>
+            <h1 style="font-size: 1.35rem; font-weight: 700; color: #f87171; margin-bottom: 0.5rem;">Access Denied</h1>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;">
+                {{ error }}
+            </p>
+            <div style="background-color: #0b1120; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem; font-size: 0.75rem; color: var(--text-muted); text-align: left;">
+                Zero-Trust Audit Notice: Every share link access attempt is logged with client IP and cryptographic verification state.
+            </div>
+        </div>
+
+        {% elif requires_password and not password_verified %}
+        <div class="auth-header">
+            <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">🔐</span>
+            <h1>Password Protected Link</h1>
+            <p>This encrypted file requires an access password to proceed</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('sharing.access_share_link', token=link.token) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label class="form-label" for="password">Share Password</label>
+                <input type="password" class="form-control" id="password" name="password" required autofocus placeholder="Enter passphrase">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">
+                Unlock File
+            </button>
+        </form>
+
+        {% else %}
+        <div class="auth-header" style="margin-bottom: 1.5rem;">
+            <span style="font-size: 2.75rem; display: block; margin-bottom: 0.5rem;">📦</span>
+            <h1>Encrypted File Available</h1>
+            <p>Cryptographically verified and ready for client-side download</p>
+        </div>
+
+        <div style="background: #0b1120; border: 1px solid var(--border-color); border-radius: 6px; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; word-break: break-all;">
+                📄 {{ file.original_name }}
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <span class="badge badge-verified">AES-256-GCM</span>
+                {% if link.is_one_time %}
+                <span class="badge badge-confidential">ONE-TIME BURN LINK</span>
+                {% endif %}
+            </div>
+
+            <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
+                • File Size: <strong>{{ "%.2f"|format(file.file_size / 1048576) if file.file_size > 1048576 else "%.1f"|format(file.file_size / 1024) }} {{ 'MB' if file.file_size > 1048576 else 'KB' }}</strong><br>
+                • Pre-encryption SHA-256 Digest:<br>
+                <code class="code-snippet" style="display: block; margin-top: 0.2rem; word-break: break-all;">
+                    {{ file.sha256_hash }}
+                </code>
+            </div>
+        </div>
+
+        {% if link.is_one_time %}
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid var(--cyber-amber); border-radius: 6px; padding: 0.75rem; margin-bottom: 1.25rem; color: #fbbf24; font-size: 0.8rem;">
+            ⚠️ <strong>Notice:</strong> This is a single-use one-time link. Upon initiating download, the link will be permanently destroyed ("LINK ALREADY USED").
+        </div>
+        {% endif %}
+
+        <a href="{{ url_for('sharing.download_shared_file', token=link.token) }}" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.85rem; font-size: 1rem;">
+            ⬇️ Decrypt & Download File
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

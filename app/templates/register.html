@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account — SecureVault{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 480px;">
+    <div class="card">
+        <div class="auth-header">
+            <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">🛡️</span>
+            <h1>Register Account</h1>
+            <p>Enroll in the Zero-Trust secure file platform</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input type="text" class="form-control" id="username" name="username" value="{{ username or '' }}" required autofocus pattern="[a-zA-Z0-9_-]{3,30}" title="3-30 alphanumeric characters, underscores or hyphens">
+                <div class="form-help">3-30 characters (letters, numbers, hyphens, underscores)</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Work / Academic Email</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="role">Role Permission Level</label>
+                <select class="form-control" id="role" name="role">
+                    <option value="USER">Standard User (Files & Sharing)</option>
+                    <option value="ADMIN">Administrator (Full RBAC, Security Dashboard & Audit)</option>
+                </select>
+                <div class="form-help">Admins require mandatory Two-Factor Authentication (TOTP).</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Master Password</label>
+                <input type="password" class="form-control" id="password" name="password" required minlength="8">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="confirm_password">Confirm Password</label>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="8">
+            </div>
+
+            <!-- Password Policy Box -->
+            <div style="background-color: rgba(6, 182, 212, 0.05); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.775rem; color: var(--text-muted);">
+                <div style="color: var(--cyber-cyan); font-weight: 600; margin-bottom: 0.25rem;">Password Security Requirements:</div>
+                • Minimum 8 characters<br>
+                • At least 1 uppercase letter (A-Z)<br>
+                • At least 1 lowercase letter (a-z)<br>
+                • At least 1 digit (0-9) & 1 special character (!@#$%^&*)<br>
+                • Stored via memory-hard <strong>Argon2id</strong> hashing
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">
+                Create Secure Account
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+            Already registered? <a href="{{ url_for('auth.login') }}" style="color: var(--cyber-cyan); text-decoration: none; font-weight: 500;">Sign in here</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

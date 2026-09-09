@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Share & Access Control — {{ file.original_name }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('files.list_files') }}" style="color: var(--cyber-cyan); text-decoration: none; font-size: 0.85rem;">
+        ← Back to Encrypted Vault
+    </a>
+    <h1 style="font-size: 1.65rem; font-weight: 700; margin-top: 0.5rem;">
+        Access Control & Sharing: <span style="color: var(--cyber-cyan);">{{ file.original_name }}</span>
+    </h1>
+    <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem;">
+        <span>Classification:</span>
+        {% if file.classification == 'PUBLIC' %}
+            <span class="badge badge-public">PUBLIC</span>
+        {% elif file.classification == 'INTERNAL' %}
+            <span class="badge badge-internal">INTERNAL</span>
+        {% elif file.classification == 'CONFIDENTIAL' %}
+            <span class="badge badge-confidential">CONFIDENTIAL</span>
+        {% else %}
+            <span class="badge badge-highly-confidential">HIGHLY_CONFIDENTIAL</span>
+        {% endif %}
+        <span style="color: var(--text-muted); font-size: 0.8rem; margin-left: 0.5rem;">
+            SHA-256: <code>{{ file.sha256_hash[:16] }}...</code>
+        </span>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    <!-- Box 1: Expiring Signed Share Link Generator -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">🔗 Generate Expiring Share Link</div>
+            <span class="badge badge-internal">Signed URL</span>
+        </div>
+
+        {% if file.is_highly_confidential %}
+        <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid var(--cyber-red); border-radius: 6px; padding: 1rem; color: #f87171; font-size: 0.85rem;">
+            <strong>⛔ Zero-Trust Policy Enforced:</strong><br>
+            Files classified as <strong>HIGHLY_CONFIDENTIAL</strong> are strictly prohibited from being shared via public or external links. You must grant explicit user permissions below.
+        </div>
+        {% else %}
+        <form method="POST" action="{{ url_for('sharing.create_link', file_id=file.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label class="form-label" for="expiry_hours">Link Expiration</label>
+                <select class="form-control" id="expiry_hours" name="expiry_hours">
+                    <option value="1">1 Hour</option>
+                    <option value="24" selected>24 Hours (1 Day)</option>
+                    <option value="72">72 Hours (3 Days)</option>
+                    <option value="168">7 Days</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="max_downloads">Max Allowed Downloads</label>
+                <input type="number" class="form-control" id="max_downloads" name="max_downloads" value="0" min="0">
+                <div class="form-help">Set to 0 for unlimited downloads until expiration.</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Link Password Protection (Optional)</label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Leave empty for open link">
+                <div class="form-help">Requires recipient to enter password before decryption.</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; color: var(--text-primary);">
+                    <input type="checkbox" name="is_one_time" value="1">
+                    <span><strong>One-Time Link ("Burn After Reading"):</strong> Invalidate immediately after 1 successful download.</span>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                Create Secure Share Link
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Box 2: Fine-Grained User RBAC Permissions -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">👥 Direct User Permissions (RBAC)</div>
+            <span class="badge badge-verified">Granular Access</span>
+        </div>
+
+        <form method="POST" action="{{ url_for('sharing.grant_permission', file_id=file.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label class="form-label" for="target_user_id">Select User</label>
+                <select class="form-control" id="target_user_id" name="target_user_id" required>
+                    <option value="">-- Choose registered user --</option>
+                    {% for u in available_users %}
+                    <option value="{{ u.id }}">{{ u.username }} ({{ u.email }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="permission">Permission Capability</label>
+                <select class="form-control" id="permission" name="permission" required>
+                    <option value="READ">READ — View metadata & contents</option>
+                    <option value="DOWNLOAD" selected>DOWNLOAD — Decrypt and download file</option>
+                    <option value="RESHARE">RESHARE — Generate share links</option>
+                    <option value="EDIT">EDIT — Update classification and metadata</option>
+                    <option value="DELETE">DELETE — Permanently shred file</option>
+                </select>
+            </div>
+
+            <div style="background-color: #0b1120; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem; margin-bottom: 1.25rem; font-size: 0.775rem; color: var(--text-muted);">
+                Granular permissions enable the Principle of Least Privilege (PoLP) across organizations.
+            </div>
+
+            <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                Grant User Permission
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Active Share Links Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Active Share Links for this File</div>
+    </div>
+
+    {% if active_links %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Share URL / Token</th>
+                    <th>Expires At (UTC)</th>
+                    <th>Downloads</th>
+                    <th>One-Time?</th>
+                    <th>Password?</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in active_links %}
+                {% set share_url = url_for('sharing.access_share_link', token=l.token, _external=True) %}
+                <tr>
+                    <td>
+                        <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--cyber-cyan);">
+                            {{ share_url }}
+                        </div>
+                        <button class="btn btn-outline btn-sm btn-copy" data-copy-text="{{ share_url }}" style="margin-top: 0.35rem;">
+                            📋 Copy Link
+                        </button>
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                        {{ l.expires_at.strftime('%Y-%m-%d %H:%M') if l.expires_at else 'Never' }}
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                        {{ l.download_count }} / {{ l.max_downloads if l.max_downloads > 0 else '∞' }}
+                    </td>
+                    <td>
+                        {% if l.is_one_time %}
+                            <span class="badge badge-confidential">ONE-TIME</span>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">Standard</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if l.password_hash %}
+                            <span class="badge badge-verified">PASSWORD</span>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">None</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <form method="POST" action="{{ url_for('sharing.revoke_link', file_id=file.id, link_id=l.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                Revoke Link
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); font-size: 0.85rem;">No active share links have been generated for this file.</p>
+    {% endif %}
+</div>
+
+<!-- Granted User Permissions Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Direct User Permissions</div>
+    </div>
+
+    {% if user_permissions %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Permission Level</th>
+                    <th>Granted By</th>
+                    <th>Granted Date</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in user_permissions %}
+                <tr>
+                    <td style="font-weight: 600; color: var(--text-primary);">
+                        {{ p.user.username }}
+                    </td>
+                    <td>
+                        <span class="badge badge-internal">{{ p.permission }}</span>
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                        {{ p.granted_by.username if p.granted_by else 'System' }}
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">
+                        {{ p.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </td>
+                    <td style="text-align: right;">
+                        <form method="POST" action="{{ url_for('sharing.revoke_permission', file_id=file.id, perm_id=p.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                Revoke
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); font-size: 0.85rem;">No explicit user permissions have been assigned yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

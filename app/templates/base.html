@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SecureVault{% endblock %} — Zero-Trust File Security</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Main Security Navigation Bar -->
+    <nav class="navbar">
+        <a href="{{ url_for('files.dashboard') if current_user else url_for('auth.login') }}" class="nav-brand">
+            <span class="brand-shield">🛡️</span>
+            <span>Secure<strong style="color: var(--cyber-cyan);">Vault</strong></span>
+        </a>
+
+        {% if current_user %}
+        <ul class="nav-links">
+            <li><a href="{{ url_for('files.dashboard') }}" class="nav-link {% if request.endpoint == 'files.dashboard' %}active{% endif %}">Dashboard</a></li>
+            <li><a href="{{ url_for('files.list_files') }}" class="nav-link {% if request.endpoint == 'files.list_files' %}active{% endif %}">Encrypted Vault</a></li>
+            <li><a href="{{ url_for('auth.list_sessions') }}" class="nav-link {% if request.endpoint == 'auth.list_sessions' %}active{% endif %}">Sessions</a></li>
+            
+            {% if current_user.is_admin %}
+            <li><a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if request.blueprint == 'admin' %}active{% endif %}" style="color: var(--cyber-amber);">Admin Center</a></li>
+            <li><a href="{{ url_for('security.audit_logs') }}" class="nav-link {% if request.endpoint == 'security.audit_logs' %}active{% endif %}">Audit Trail</a></li>
+            <li><a href="{{ url_for('security.risk_alerts') }}" class="nav-link {% if request.endpoint == 'security.risk_alerts' %}active{% endif %}">Risk Alerts</a></li>
+            {% endif %}
+        </ul>
+
+        <div class="nav-user">
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">
+                {{ current_user.username }}
+                <span class="badge {% if current_user.is_admin %}badge-confidential{% else %}badge-internal{% endif %}" style="margin-left: 0.35rem;">{{ current_user.role }}</span>
+            </span>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm">Sign Out</a>
+        </div>
+        {% else %}
+        <div class="nav-user">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Sign In</a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Register</a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="container">
+        <!-- Flash Alert Messages -->
+        <div class="flash-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Security Footer -->
+    <footer class="footer">
+        <div>
+            <strong>SecureVault Platform</strong> — Zero-trust-inspired access control • Envelope Encryption (AES-256-GCM) • SHA-256 Integrity Verification • Role-Based Access Control • Defense-in-Depth
+        </div>
+        <div style="margin-top: 0.35rem; color: var(--text-muted); font-size: 0.75rem;">
+            &copy; {{ current_year }} SecureVault. Security & Cryptographic Evaluation Build.
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

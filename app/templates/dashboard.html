@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — SecureVault{% endblock %}
+
+{% block content %}
+<!-- Security Banner -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.65rem; font-weight: 700;">Security Operations Vault</h1>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+            Zero-trust-inspired access control • Active Session: <code>{{ user.username }}</code> (Role: {{ user.role }})
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('files.list_files') }}" class="btn btn-secondary">
+            📂 Explore All Files
+        </a>
+        {% if not user.is_2fa_enabled %}
+        <a href="{{ url_for('auth.setup_2fa') }}" class="btn btn-outline" style="border-color: var(--cyber-amber); color: var(--cyber-amber);">
+            ⚠️ Enable 2FA
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Metrics Overview -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-label">Total Files Encrypted</div>
+        <div class="metric-value">{{ total_files }}</div>
+        <div class="metric-desc">AES-256-GCM Envelope Protection</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Vault Storage Volume</div>
+        <div class="metric-value">
+            {% if total_bytes > 1048576 %}
+                {{ "%.2f"|format(total_bytes / 1048576) }} MB
+            {% elif total_bytes > 1024 %}
+                {{ "%.1f"|format(total_bytes / 1024) }} KB
+            {% else %}
+                {{ total_bytes }} B
+            {% endif %}
+        </div>
+        <div class="metric-desc">Encrypted disk blobs isolated by UUID</div>
+    </div>
+    <div class="metric-card success">
+        <div class="metric-label">Shared With You</div>
+        <div class="metric-value">{{ shared_files_count }}</div>
+        <div class="metric-desc">Granular RBAC file permissions</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Active Share Links</div>
+        <div class="metric-value">{{ active_links_count }}</div>
+        <div class="metric-desc">Signed, expiring download URLs</div>
+    </div>
+</div>
+
+<!-- Upload Card -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">🔐 Encrypt & Upload New File</div>
+        <span class="badge badge-verified">AES-256-GCM + SHA-256</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('files.upload_file') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="file">Select File (Max 25 MB)</label>
+                <input type="file" class="form-control" id="file" name="file" required>
+                <div class="form-help">Supported: PDF, DOCX, XLSX, TXT, PNG, JPG, ZIP, CSV, etc.</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="classification">Data Classification Tier</label>
+                <select class="form-control" id="classification" name="classification">
+                    <option value="INTERNAL">INTERNAL — General organization use</option>
+                    <option value="PUBLIC">PUBLIC — Shareable externally</option>
+                    <option value="CONFIDENTIAL">CONFIDENTIAL — Restricted department access</option>
+                    <option value="HIGHLY_CONFIDENTIAL">HIGHLY_CONFIDENTIAL — Strict No-Public-Link Policy</option>
+                </select>
+                <div class="form-help">HIGHLY_CONFIDENTIAL prevents generation of public share links.</div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background-color: #0b1120; padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid var(--border-color);">
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                Pipeline: <strong>Sanitize & Validate (Extension & Magic Bytes)</strong> ➔ <strong>SHA-256 Pre-Hash</strong> ➔ <strong>AES-256-GCM Envelope Encryption</strong> ➔ <strong>UUID Disk Store</strong>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                Encrypt & Store
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Dynamic Security Posture Overview -->
+{% if security_posture %}
+<div class="card" style="background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(15, 23, 42, 0.9));">
+    <div class="card-header">
+        <div class="card-title">🛡️ Dynamic Platform Security Posture</div>
+        <span class="badge badge-verified">Live System Checks</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.85rem;">
+        {% for item in security_posture %}
+        <div style="background-color: #0b1120; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+            <div>
+                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+                    <span>{{ item.icon }}</span>
+                    <span>{{ item.control }}</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    {{ item.detail }}
+                </div>
+            </div>
+            <span class="badge {% if item.status == 'OPERATIONAL' %}badge-clean{% elif item.status == 'ACTIVE' %}badge-verified{% else %}badge-confidential{% endif %}" style="font-size: 0.7rem;">
+                {{ item.status }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Files Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Recent Encrypted Files</div>
+        <a href="{{ url_for('files.list_files') }}" class="btn btn-outline btn-sm">View All</a>
+    </div>
+
+    {% if owned_files %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Original Filename</th>
+                    <th>Classification</th>
+                    <th>Size</th>
+                    <th>Pre-Encryption SHA-256</th>
+                    <th>Encryption</th>
+                    <th>Uploaded (UTC)</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in owned_files %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+                            <span>📄</span>
+                            <span>{{ f.original_name }}</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);">
+                            Storage UUID: {{ f.storage_name }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if f.classification == 'PUBLIC' %}
+                            <span class="badge badge-public">PUBLIC</span>
+                        {% elif f.classification == 'INTERNAL' %}
+                            <span class="badge badge-internal">INTERNAL</span>
+                        {% elif f.classification == 'CONFIDENTIAL' %}
+                            <span class="badge badge-confidential">CONFIDENTIAL</span>
+                        {% else %}
+                            <span class="badge badge-highly-confidential">HIGHLY_CONFIDENTIAL</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if f.file_size > 1048576 %}
+                            {{ "%.1f"|format(f.file_size / 1048576) }} MB
+                        {% else %}
+                            {{ "%.1f"|format(f.file_size / 1024) }} KB
+                        {% endif %}
+                    </td>
+                    <td>
+                        <code class="code-snippet" title="{{ f.sha256_hash }}">
+                            {{ f.sha256_hash[:10] }}...{{ f.sha256_hash[-6:] }}
+                        </code>
+                        <span class="badge badge-verified" style="margin-left: 0.25rem;">VERIFIED</span>
+                    </td>
+                    <td>
+                        <span class="badge badge-clean">AES-256-GCM</span>
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">
+                        {{ f.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: inline-flex; gap: 0.4rem;">
+                            <a href="{{ url_for('files.download_file', file_id=f.id) }}" class="btn btn-outline btn-sm" title="Decrypt & Download">
+                                ⬇️ Download
+                            </a>
+                            <a href="{{ url_for('sharing.manage_sharing', file_id=f.id) }}" class="btn btn-secondary btn-sm" title="Share & Permissions">
+                                🔗 Share
+                            </a>
+                            <form method="POST" action="{{ url_for('files.delete_file', file_id=f.id) }}" onsubmit="return confirm('Secure Shredding Confirmation:\nThis will permanently overwrite the encrypted file on disk, delete the key, and revoke all active share links. Proceed?');" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Secure Shred">
+                                    🗑️ Shred
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No encrypted files found in your vault.</p>
+        <p style="font-size: 0.85rem;">Use the form above to encrypt and upload your first file.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

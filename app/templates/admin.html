@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Security Operations Center — SecureVault{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🛡️</span> Security Operations Center (SOC)
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+            Real-time intrusion detection, rate-limit monitoring, and cryptographic oversight
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">
+            👥 User Management
+        </a>
+        <a href="{{ url_for('security.audit_logs') }}" class="btn btn-secondary">
+            📋 Full Audit Trail
+        </a>
+        <a href="{{ url_for('security.export_audit_logs') }}" class="btn btn-outline">
+            📥 Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Security Dashboard Metrics Grid -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-label">Enrolled Users</div>
+        <div class="metric-value">{{ total_users }}</div>
+        <div class="metric-desc">RBAC accounts with Argon2id</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Encrypted Blobs</div>
+        <div class="metric-value">{{ total_files }}</div>
+        <div class="metric-desc">AES-256-GCM Envelope Files</div>
+    </div>
+    <div class="metric-card warning">
+        <div class="metric-label">Failed Logins (24h)</div>
+        <div class="metric-value">{{ failed_logins_24h }}</div>
+        <div class="metric-desc">Brute-force attempts tracked</div>
+    </div>
+    <div class="metric-card danger">
+        <div class="metric-label">Blocked Requests (24h)</div>
+        <div class="metric-value">{{ blocked_requests_24h }}</div>
+        <div class="metric-desc">IDOR, Lockouts & Risk Engine</div>
+    </div>
+    <div class="metric-card danger">
+        <div class="metric-label">Security Alerts (All-Time)</div>
+        <div class="metric-value">{{ security_alerts_count }}</div>
+        <div class="metric-desc">Anomalies & Policy violations</div>
+    </div>
+    <div class="metric-card {{ risk_badge_class }}">
+        <div class="metric-label">Live Threat Posture</div>
+        <div class="metric-value">{{ risk_level }}</div>
+        <div class="metric-desc">Real-time dynamic anomaly status</div>
+    </div>
+    <div class="metric-card success">
+        <div class="metric-label">Active Share Links</div>
+        <div class="metric-value">{{ active_links }}</div>
+        <div class="metric-desc">Signed token URLs alive</div>
+    </div>
+</div>
+
+<!-- Cryptographic Posture Status Card -->
+<div class="card" style="background: linear-gradient(135deg, rgba(23, 32, 51, 0.9), rgba(15, 23, 42, 0.95));">
+    <div class="card-header">
+        <div class="card-title">🔐 Cryptographic & Platform Posture</div>
+        <span class="badge badge-verified">Zero-Trust-Inspired Controls</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; font-size: 0.85rem;">
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem;">STORAGE ENCRYPTION</div>
+            <div style="font-weight: 600; color: var(--cyber-cyan);">AES-256-GCM (Envelope Architecture)</div>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem;">PASSWORD HASHING</div>
+            <div style="font-weight: 600; color: var(--cyber-green);">Argon2id (Memory-Hard, Salted)</div>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem;">INTEGRITY VERIFICATION</div>
+            <div style="font-weight: 600; color: var(--cyber-cyan);">SHA-256 (Pre-Cipher Digest Checked)</div>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem;">DEFENSE MECHANISMS</div>
+            <div style="font-weight: 600; color: var(--cyber-amber);">Rate Limiter, Lockout, CSRF & CSP</div>
+        </div>
+    </div>
+</div>
+
+<!-- Live Security Event Stream -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Live Security Event Stream (Top 15 Events)</div>
+        <a href="{{ url_for('security.audit_logs') }}" class="btn btn-outline btn-sm">Explore All</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Timestamp (UTC)</th>
+                    <th>Action</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>User</th>
+                    <th>IP Address</th>
+                    <th>Event Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_events %}
+                <tr>
+                    <td style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">
+                        {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </td>
+                    <td>
+                        <strong style="font-size: 0.8rem; color: var(--text-primary);">{{ log.action }}</strong>
+                    </td>
+                    <td>
+                        {% if log.severity == 'CRITICAL' %}
+                            <span class="badge badge-infected" style="font-weight: 700; border: 1px solid #ef4444;">CRITICAL</span>
+                        {% elif log.severity == 'HIGH' %}
+                            <span class="badge badge-infected">HIGH</span>
+                        {% elif log.severity == 'MEDIUM' %}
+                            <span class="badge badge-confidential">MEDIUM</span>
+                        {% elif log.severity == 'LOW' %}
+                            <span class="badge badge-clean">LOW</span>
+                        {% else %}
+                            <span class="badge badge-skipped">INFO</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if log.status == 'SUCCESS' %}
+                            <span class="badge badge-clean">SUCCESS</span>
+                        {% elif log.status == 'BLOCKED' %}
+                            <span class="badge badge-infected">BLOCKED</span>
+                        {% elif log.status == 'WARNING' %}
+                            <span class="badge badge-confidential">WARNING</span>
+                        {% else %}
+                            <span class="badge badge-infected">FAILURE</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                        {{ log.username or 'Anonymous' }}
+                    </td>
+                    <td style="font-family: var(--font-mono); font-size: 0.8rem;">
+                        {{ log.ip_address or '—' }}
+                    </td>
+                    <td style="font-size: 0.8rem; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.details }}">
+                        {{ log.details or '—' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

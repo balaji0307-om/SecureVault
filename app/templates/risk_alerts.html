@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Threat & Risk Alerts — SecureVault{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('admin.dashboard') }}" style="color: var(--cyber-cyan); text-decoration: none; font-size: 0.85rem;">
+        ← Back to Security Center
+    </a>
+    <h1 style="font-size: 1.65rem; font-weight: 700; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🚨</span> Threat Detection & Risk Engine Alerts
+    </h1>
+    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+        Rule-based heuristic alerts: brute-force patterns, download velocity spikes, and policy violations
+    </p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Recent Threat Events (Last 50)</div>
+        <span class="badge badge-infected">{{ alerts|length }} Incidents</span>
+    </div>
+
+    {% if alerts %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Timestamp (UTC)</th>
+                    <th>Threat Classification</th>
+                    <th>Status</th>
+                    <th>Actor</th>
+                    <th>Source IP</th>
+                    <th>Incident Telemetry</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in alerts %}
+                <tr>
+                    <td style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono); white-space: nowrap;">
+                        {{ a.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </td>
+                    <td>
+                        <strong style="color: #f87171; font-size: 0.85rem;">{{ a.action }}</strong>
+                    </td>
+                    <td>
+                        {% if a.status == 'BLOCKED' %}
+                            <span class="badge badge-infected">BLOCKED</span>
+                        {% elif a.status == 'WARNING' %}
+                            <span class="badge badge-confidential">WARNING</span>
+                        {% else %}
+                            <span class="badge badge-clean">{{ a.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.85rem;">
+                        {{ a.username or 'Anonymous' }}
+                    </td>
+                    <td style="font-family: var(--font-mono); font-size: 0.8rem;">
+                        {{ a.ip_address or '—' }}
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-primary);">
+                        {{ a.details or '—' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; color: #34d399; margin-bottom: 0.5rem;">✓ No Active Threats Detected</p>
+        <p style="font-size: 0.85rem;">The system is operating securely within baseline behavioral thresholds.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

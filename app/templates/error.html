@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ code }} — SecureVault{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 500px; text-align: center;">
+    <div class="card" style="padding: 2.5rem 1.5rem;">
+        <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">
+            {% if code == 403 %}🛑{% elif code == 404 %}🔍{% elif code == 429 %}⏳{% elif code == 413 %}📦{% else %}⚠️{% endif %}
+        </div>
+        
+        <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+            HTTP {{ code }}
+        </h1>
+        
+        <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.6;">
+            {{ message }}
+        </p>
+
+        <div style="background: #0b1120; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem; margin-bottom: 1.5rem; font-size: 0.75rem; color: var(--text-muted); text-align: left;">
+            Incident Telemetry: This event has been dispatched to the security audit logger. Timestamp: {{ current_year }}.
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 0.75rem;">
+            <a href="javascript:history.back()" class="btn btn-secondary">
+                ← Go Back
+            </a>
+            <a href="{{ url_for('files.dashboard') if current_user else url_for('auth.login') }}" class="btn btn-primary">
+                Return to Safe Zone
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

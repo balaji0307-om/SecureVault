@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Active Sessions & Device Security — SecureVault{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.65rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+            <span>💻</span> Active Sessions & Concurrent Devices
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+            Monitor authenticated sessions across devices and remotely revoke suspicious or stale logins.
+        </p>
+    </div>
+    <a href="{{ url_for('files.dashboard') }}" class="btn btn-secondary">
+        ← Back to Dashboard
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Enrolled Sessions ({{ sessions|length }})</div>
+        <span class="badge badge-verified">SHA-256 Session Rotation</span>
+    </div>
+
+    {% if sessions %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Device & Browser</th>
+                    <th>IP Address</th>
+                    <th>Session Created</th>
+                    <th>Last Active</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                            <span>📱</span>
+                            <span>{{ s.device_name }}</span>
+                            {% if s.session_token_hash == current_token_hash %}
+                                <span class="badge badge-clean" style="font-size: 0.7rem;">CURRENT SESSION</span>
+                            {% endif %}
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 0.2rem; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ s.user_agent or 'Unknown UA' }}
+                        </div>
+                    </td>
+                    <td style="font-family: var(--font-mono); font-size: 0.85rem;">
+                        {{ s.ip_address or '—' }}
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">
+                        {{ s.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}
+                    </td>
+                    <td style="font-size: 0.8rem; color: var(--text-muted);">
+                        {{ s.last_active_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}
+                    </td>
+                    <td>
+                        <span class="badge badge-clean">ACTIVE</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <form method="POST" action="{{ url_for('auth.revoke_session', session_id=s.id) }}" onsubmit="return confirm('Revoke this device session? The user on this device will be immediately signed out.');" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm" {% if s.session_token_hash == current_token_hash %}title="Revoking current session will log you out"{% endif %}>
+                                🚫 Revoke
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+        <p>No active sessions found.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
