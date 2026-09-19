@@ -15,28 +15,6 @@
             <div style="background: #ffffff; display: inline-block; padding: 1rem; border-radius: 8px;">
                 <img src="data:image/png;base64,{{ qr_b64 }}" alt="2FA QR Code" style="width: 200px; height: 200px; display: block;">
             </div>
-            <div style="margin-top: 1.25rem;">
-                <details style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem 1rem; text-align: left; font-size: 0.85rem;">
-                    <summary style="cursor: pointer; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; justify-content: space-between; user-select: none;">
-                        <span>🔑 Can't scan QR code? View manual setup key</span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">Click to expand</span>
-                    </summary>
-                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.5rem;">
-                        <span style="color: var(--text-muted); font-size: 0.78rem;">Authenticator Secret Key (Hidden for anti-shoulder surfing):</span>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="password" id="manualSecretKey" value="{{ secret }}" readonly 
-                                   style="flex: 1; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.45rem 0.65rem; color: var(--cyber-cyan); font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.12em;"
-                                   aria-label="Manual 2FA Secret Key">
-                            <button type="button" id="toggleSecretBtn" onclick="toggleSecretVisibility()" class="btn btn-outline btn-sm" style="white-space: nowrap; padding: 0.45rem 0.65rem; font-size: 0.75rem;">
-                                👁️ <span id="toggleSecretText">Show</span>
-                            </button>
-                            <button type="button" id="copySecretBtn" onclick="copySecretKey()" class="btn btn-outline btn-sm" style="white-space: nowrap; padding: 0.45rem 0.65rem; font-size: 0.75rem;">
-                                📋 <span id="copySecretText">Copy</span>
-                            </button>
-                        </div>
-                    </div>
-                </details>
-            </div>
         </div>
 
         <form method="POST" action="{{ url_for('auth.setup_2fa') }}">
@@ -53,49 +31,4 @@
         </form>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-function toggleSecretVisibility() {
-    const input = document.getElementById("manualSecretKey");
-    const text = document.getElementById("toggleSecretText");
-    const btn = document.getElementById("toggleSecretBtn");
-    if (!input || !text) return;
-    
-    if (input.type === "password") {
-        input.type = "text";
-        text.innerText = "Hide";
-        btn.innerHTML = "🙈 <span id=\"toggleSecretText\">Hide</span>";
-    } else {
-        input.type = "password";
-        text.innerText = "Show";
-        btn.innerHTML = "👁️ <span id=\"toggleSecretText\">Show</span>";
-    }
-}
-
-function copySecretKey() {
-    const input = document.getElementById("manualSecretKey");
-    const text = document.getElementById("copySecretText");
-    if (!input) return;
-
-    navigator.clipboard.writeText(input.value).then(() => {
-        if (text) {
-            text.innerText = "Copied! ✅";
-            setTimeout(() => {
-                text.innerText = "Copy";
-            }, 2000);
-        }
-    }).catch(() => {
-        input.select();
-        document.execCommand("copy");
-        if (text) {
-            text.innerText = "Copied! ✅";
-            setTimeout(() => {
-                text.innerText = "Copy";
-            }, 2000);
-        }
-    });
-}
-</script>
 {% endblock %}
